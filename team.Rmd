@@ -1,5 +1,5 @@
 ---
-title: "Lab 5 team"
+title: "Lab 5 Team"
 author: "Meredith Tucker, (mltucker2001) and Mike Zaino, (mzaino16)"
 date: "4/13/2020"
 output: html_document
@@ -8,7 +8,6 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
-library(mapdata)
 ```
 
 
@@ -22,27 +21,24 @@ head(acc)
 
 ### Part 1
 
-#1.)are there some days of the week where more accidents happen than on others (use variable DAY_WEEK)?
+1.)are there some days of the week where more accidents happen than on others (use variable DAY_WEEK)?
 ```{r}
 DAY_WEEK <- table(acc$DAY_WEEK)
 DAY_WEEK
-
 ```
 
-# The days of the week that have the most accidents compared to the other days of the week are Friday, Saturday, and Sunday. Saturdays have the most overall accidents. 
+The days of the week that have the most accidents compared to the other days of the week are Friday, Saturday, and Sunday. Saturdays have the most overall accidents. 
 
-
-#2.)what time of the day do accidents happen (use variable HOUR)?
+2.)what time of the day do accidents happen (use variable HOUR)?
 
 ```{r}
 timeacc <- acc %>% 
   group_by(HOUR) %>% 
   summarize(n=n()) %>%
   arrange(desc(n))
-timeacc
 ```
 
-# The most accidents occur at hour 18 miltary time which is 6pm. This is mostly likely due to end of the work day rush hour.
+The most accidents occur at hour 18 miltary time which is 6pm. This is mostly likely due to end of the work day rush hour.
 
 #What is the number of accidents with at least one drunk driver (use variable DRUNK_DR)?
 
@@ -50,32 +46,27 @@ timeacc
 acc %>% 
   group_by(DRUNK_DR) %>% 
   summarize(n=n())
-acc
-8513+249+7
 ```
 
-# There are 8769 accidents that involve at least one drunk driver. 
+There are 8769 accidents that involve at least one drunk driver. 
 
+### PART 2
 
-###PART 2
-
-# In the person table, identify drivers( PER_TYP==1, se FARS manual), and subset them
+4. In the person table, identify drivers( PER_TYP==1, se FARS manual), and subset them
 
 ```{r}
 Driver <- pers %>% 
   filter(PER_TYP == 1)
 ```
 
-
-
-# 5.) Join accident and person table
+5.) Join accident and person table
 ```{r}
 accper <- inner_join(acc, Driver)
 head(accper)
 ```
 
 
-# 6.) Tally the number of accidents by day of the week, hour of the day, and gender. Visualize results.
+6.) Tally the number of accidents by day of the week, hour of the day, and gender. Visualize results.
 
 ```{r}
 tal1 <- accper %>% 
@@ -92,11 +83,6 @@ tal3 <- accper %>%
   summarize(sexcount=n()) %>% 
   mutate(SEX = factor(SEX))
 
-
-tal1
-tal2
-tal3
-
 ggplot(tal1, aes(x=DAY_WEEK, weight=Weekdaycount, fill=DAY_WEEK)) + geom_bar() + ggtitle('Day of Week Count')
 
 ggplot(tal2, aes(x=HOUR, weight=Hourcount)) + geom_bar() + ggtitle('Hour Count')
@@ -104,6 +90,39 @@ ggplot(tal2, aes(x=HOUR, weight=Hourcount)) + geom_bar() + ggtitle('Hour Count')
 ggplot(tal3, aes(x=SEX, weight=sexcount)) + geom_bar() + ggtitle('Count by Sex')
 ```
 
+### Part Three: Connecting data and make maps
 
+7. Now plot a choropleth map of accidents on a county level
 
+```{r, warning=FALSE}
+GLCUS <- readxl::read_xlsx('/Users/TheemikezanilyMac/Documents/School/DS 202/ds202_lab5/GLCUS.xlsx')
+counties <- map_data('county')
+
+GLCUS2 <- GLCUS %>% 
+  mutate(`State Code` = as.integer(`State Code`),
+         `County Code` = as.integer(`County Code`),
+         `City Code` = as.integer(`City Code`)) %>% 
+  inner_join(accper,c(`County Code` = 'COUNTY', `State Code` = "STATE", `City Code` = 'CITY'))
+
+ggplot(data=counties, aes(x=long, y=lat))+
+  geom_polygon(aes(group=group))+
+  geom_point(data = GLCUS2, aes(x=LONGITUD, y=LATITUDE), color='lightgreen', alpha=.2, size=.02)+
+  xlim(c(-130,-60))+ylim(c(20,50))
+```
+
+9. Can you find seasonal trends in accident occurrences in different states? Is summer or winter more dangerous? Why?
+
+```{r}
+ggplot(data=counties, aes(x=long, y=lat))+
+  geom_polygon(aes(group=group))+
+  geom_point(data = GLCUS2 %>% filter(MONTH %in% c(12,1,2)), aes(x=LONGITUD, y=LATITUDE), color='lightgreen', alpha=.2, size=.02)+
+  xlim(c(-130,-60))+ylim(c(20,50))
+
+ggplot(data=counties, aes(x=long, y=lat))+
+  geom_polygon(aes(group=group))+
+  geom_point(data = GLCUS2 %>% filter(MONTH %in% c(6,7,8)), aes(x=LONGITUD, y=LATITUDE), color='lightgreen', alpha=.2, size=.02)+
+  xlim(c(-130,-60))+ylim(c(20,50))
+```
+
+Yes, you can find seasonal trends in the accidents. In the Winter, there are more accidents. This can be seen by the darker colors around the big city areas. This is because during the Winter, the weather plays a factor in whether it snows, ice on the road, and overall visibility of the road. This is evident in cities affected by winter weather such as New York, Chicago, and Madison.
 
