@@ -1,0 +1,163 @@
+---
+title: "Individual 2"
+author: "Meredith Tucker (mltucker2001)"
+date: "4/8/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(mapdata)
+```
+
+```{r}
+acc <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/accident.csv", stringsAsFactors = FALSE)
+
+pers <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/person.csv", stringsAsFactors = FALSE)
+
+head(acc)
+```
+
+
+
+### Part 1
+
+#1.)are there some days of the week where more accidents happen than on others (use variable DAY_WEEK)?
+```{r}
+DAY_WEEK <- table(acc$DAY_WEEK)
+DAY_WEEK
+
+```
+
+
+#2.)what time of the day do accidents happen (use variable HOUR)?
+
+```{r}
+timeacc <- acc %>% 
+  group_by(HOUR) %>% 
+  summarize(n=n()) %>%
+  arrange(desc(n))
+timeacc
+
+```
+
+#What is the number of accidents with at least one drunk driver (use variable DRUNK_DR)?
+
+```{r}
+acc %>% 
+  group_by(DRUNK_DR) %>% 
+  summarize(n=n())
+8513+249+7
+
+```
+
+
+###PART 2
+
+# In the person table, identify drivers( PER_TYP==1, se FARS manual), and subset them
+```{r}
+Driver <- pers %>% 
+  filter(PER_TYP == 1)
+
+Driver
+```
+
+# 5.) Join accident and person table
+```{r}
+accper <- inner_join(acc, Driver)
+accper
+```
+
+# 6.) Tally the number of accidents by day of the week, hour of the day, and gender. Visualize results.
+```{r}
+tal1 <- accper %>% 
+  group_by(DAY_WEEK) %>% 
+  summarize(Weekdaycount=n())
+
+tal2 <- accper %>% 
+  group_by(HOUR) %>% 
+  summarize(Hourcount=n()) %>% 
+  mutate(HOUR = factor(HOUR))
+
+tal3 <- accper %>% 
+  group_by(SEX) %>% 
+  summarize(sexcount=n()) %>% 
+  mutate(SEX = factor(SEX))
+
+
+tal1
+tal2
+tal3
+
+ggplot(tal1, aes(x=DAY_WEEK, weight=Weekdaycount)) + geom_bar()
+
+ggplot(tal2, aes(x=HOUR, weight=Hourcount)) + geom_bar()
+
+ggplot(tal3, aes(x=SEX, weight=sexcount)) + geom_bar()
+
+```
+
+
+
+### Part 3
+
+# Now plot a choropleth map of accidents on a county level
+
+```{r}
+GLCUS <- readxl::read_xlsx('C:/Users/mltuc/Documents/DS 202/ds202_lab5/glc us.xlsx')
+head(GLCUS)
+```
+
+
+
+
+```{r}
+#joining acc and GLCUS data sets
+#by state and state code
+
+
+GLCUS2 <- GLCUS %>% 
+  mutate(`State Code` = as.integer(`State Code`), 
+         `County Code` = as.integer(`County Code`),
+         `City Code` = as.integer(`City Code`)) %>% 
+  inner_join(accper, c(`County Code` = 'COUNTY', `State Code` = 'STATE', `City Code` = 'CITY'))
+
+head(GLCUS2)
+  
+
+states <- map_data('state')
+counties <- map_data('county')
+
+ggplot(data=states, aes(x=long, y=lat)) + 
+  geom_polygon(aes(group=group)) + 
+  geom_point(data = GLCUS2, aes(x=LONGITUD, y=LATITUDE), color='lightgreen', alpha=2, size=.02) +
+  xlim(c(-130, -60)) + ylim(c(20,50))
+
+
+ggplot(data=counties, aes(x=long, y=lat)) + 
+  geom_polygon(data=counties, aes(group=group)) + 
+  geom_point(data = GLCUS2, aes(x=LONGITUD, y=LATITUDE), color='lightgreen', alpha=2, size=.02) +
+  xlim(c(-130, -60)) + ylim(c(20,50))
+
+```
+
+
+
+
+# Compare Winter verse Summer
+```{r}
+#Winter
+ggplot(data=states, aes(x=long, y=lat)) + 
+  geom_polygon(aes(group=group)) + 
+  geom_point(data = GLCUS2 %>% filter(MONTH %in% c(12,1,2)), aes(x=LONGITUD, y=LATITUDE), color='lightgreen', alpha=2, size=.02) +
+  xlim(c(-130, -60)) + ylim(c(20,50))
+
+#Summer
+ggplot(data=states, aes(x=long, y=lat)) + 
+  geom_polygon(aes(group=group)) + 
+  geom_point(data = GLCUS2 %>% filter(MONTH %in% c(6,7,8)), aes(x=LONGITUD, y=LATITUDE), color='lightgreen', alpha=2, size=.02) +
+  xlim(c(-130, -60)) + ylim(c(20,50))
+```
+
+

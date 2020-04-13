@@ -1,0 +1,109 @@
+---
+title: "Lab 5 team"
+author: "Meredith Tucker, (mltucker2001) and Mike Zaino, (mzaino16)"
+date: "4/13/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(mapdata)
+```
+
+
+```{r}
+acc <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/accident.csv", stringsAsFactors = FALSE)
+
+pers <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/person.csv", stringsAsFactors = FALSE)
+
+head(acc)
+```
+
+### Part 1
+
+#1.)are there some days of the week where more accidents happen than on others (use variable DAY_WEEK)?
+```{r}
+DAY_WEEK <- table(acc$DAY_WEEK)
+DAY_WEEK
+
+```
+
+# The days of the week that have the most accidents compared to the other days of the week are Friday, Saturday, and Sunday. Saturdays have the most overall accidents. 
+
+
+#2.)what time of the day do accidents happen (use variable HOUR)?
+
+```{r}
+timeacc <- acc %>% 
+  group_by(HOUR) %>% 
+  summarize(n=n()) %>%
+  arrange(desc(n))
+timeacc
+```
+
+# The most accidents occur at hour 18 miltary time which is 6pm. This is mostly likely due to end of the work day rush hour.
+
+#What is the number of accidents with at least one drunk driver (use variable DRUNK_DR)?
+
+```{r}
+acc %>% 
+  group_by(DRUNK_DR) %>% 
+  summarize(n=n())
+acc
+8513+249+7
+```
+
+# There are 8769 accidents that involve at least one drunk driver. 
+
+
+###PART 2
+
+# In the person table, identify drivers( PER_TYP==1, se FARS manual), and subset them
+
+```{r}
+Driver <- pers %>% 
+  filter(PER_TYP == 1)
+```
+
+
+
+# 5.) Join accident and person table
+```{r}
+accper <- inner_join(acc, Driver)
+head(accper)
+```
+
+
+# 6.) Tally the number of accidents by day of the week, hour of the day, and gender. Visualize results.
+
+```{r}
+tal1 <- accper %>% 
+  group_by(DAY_WEEK) %>% 
+  summarize(Weekdaycount=n())
+
+tal2 <- accper %>% 
+  group_by(HOUR) %>% 
+  summarize(Hourcount=n()) %>% 
+  mutate(HOUR = factor(HOUR))
+
+tal3 <- accper %>% 
+  group_by(SEX) %>% 
+  summarize(sexcount=n()) %>% 
+  mutate(SEX = factor(SEX))
+
+
+tal1
+tal2
+tal3
+
+ggplot(tal1, aes(x=DAY_WEEK, weight=Weekdaycount, fill=DAY_WEEK)) + geom_bar() + ggtitle('Day of Week Count')
+
+ggplot(tal2, aes(x=HOUR, weight=Hourcount)) + geom_bar() + ggtitle('Hour Count')
+
+ggplot(tal3, aes(x=SEX, weight=sexcount)) + geom_bar() + ggtitle('Count by Sex')
+```
+
+
+
+
