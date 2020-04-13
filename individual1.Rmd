@@ -1,0 +1,141 @@
+---
+title: "Lab 5"
+author: "Mike Zaino = mzaino16"
+date: "4/9/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+states <- map_data("state")
+```
+
+```{r}
+acc <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/accident.csv", stringsAsFactors = FALSE)
+
+per <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/person.csv", stringsAsFactors = FALSE)
+```
+
+### Part one: Accident data
+
+1. Are there some days of the week where more accidents happen than on others (use variable DAY_WEEK)?
+
+```{r}
+acc %>% 
+  group_by(DAY_WEEK) %>% 
+  summarize(n=n())
+```
+
+Yes, Friday, Saturday, and Sunday seem to have more fatalities than the rest of the weekdays.
+
+2. What time of the day do accidents happen (use variable HOUR)?
+
+```{r}
+acc %>% 
+  group_by(HOUR) %>% 
+  summarize(n=n()) %>% 
+  arrange(desc(n))
+```
+
+The most common hours are hours 18, 17, and 20, and 21. That equates to 6, 7, 8, and 9 pm.
+
+3. What is the number of accidents with at least one drunk driver (use variable DRUNK_DR)?
+
+```{r}
+acc %>% 
+  group_by(DRUNK_DR) %>% 
+  summarize(n=n())
+```
+
+The number of accidents with at least 1 drunk driver is 8769.
+
+### Part two: Connecting data
+
+4. In the person table, identify drivers (PER_TYP == 1, see FARS manual) and subset on them.
+
+```{r}
+per2 <- per %>% 
+  filter(PER_TYP == 1)
+```
+
+5. Join accident and person table (work out which variable(s) to use)
+
+```{r}
+accper <- inner_join(acc, per2)
+```
+
+6. Tally the number of accidents by day of the week (DAY_WEEK), hour of the day (HOUR) and gender (SEX). Visualize the results.
+
+```{r}
+accper %>% 
+  mutate(DAY_WEEK = factor(DAY_WEEK)) %>% 
+  group_by(DAY_WEEK) %>% 
+  summarize(Accidents = n()) %>% 
+  ggplot(aes(x=DAY_WEEK, weight=Accidents, fill=DAY_WEEK))+geom_bar()
+```
+
+```{r}
+accper %>% 
+  mutate(HOUR = factor(HOUR)) %>% 
+  group_by(HOUR) %>% 
+  summarize(Accidents = n()) %>% 
+  ggplot(aes(x=HOUR, weight=Accidents))+geom_bar()
+```
+
+```{r}
+accper %>% 
+  mutate(SEX = factor(SEX)) %>% 
+  group_by(SEX) %>% 
+  summarize(Accidents = n()) %>% 
+  ggplot(aes(x=SEX, weight=Accidents, fill=SEX))+geom_bar()
+```
+
+### Part Three: Connecting data and make maps
+
+7. Now plot a choropleth map of accidents on a county level
+
+```{r, warning=FALSE}
+GLCUS <- readxl::read_xlsx('/Users/TheemikezanilyMac/Documents/School/DS 202/ds202_lab5/GLCUS.xlsx')
+counties <- map_data('county')
+
+GLCUS2 <- GLCUS %>% 
+  mutate(`State Code` = as.integer(`State Code`),
+         `County Code` = as.integer(`County Code`),
+         `City Code` = as.integer(`City Code`)) %>% 
+  inner_join(accper,c(`County Code` = 'COUNTY', `State Code` = "STATE", `City Code` = 'CITY'))
+
+ggplot(data=counties, aes(x=long, y=lat))+
+  geom_polygon(aes(group=group))+
+  geom_point(data = GLCUS2, aes(x=LONGITUD, y=LATITUDE), color='lightgreen', alpha=.2, size=.02)+
+  xlim(c(-130,-60))+ylim(c(20,50))
+```
+
+9. Can you find seasonal trends in accident occurrences in different states? Is summer or winter more dangerous? Why?
+
+```{r}
+ggplot(data=counties, aes(x=long, y=lat))+
+  geom_polygon(aes(group=group))+
+  geom_point(data = GLCUS2 %>% filter(MONTH %in% c(12,1,2)), aes(x=LONGITUD, y=LATITUDE), color='lightgreen', alpha=.2, size=.02)+
+  xlim(c(-130,-60))+ylim(c(20,50))
+
+ggplot(data=counties, aes(x=long, y=lat))+
+  geom_polygon(aes(group=group))+
+  geom_point(data = GLCUS2 %>% filter(MONTH %in% c(6,7,8)), aes(x=LONGITUD, y=LATITUDE), color='lightgreen', alpha=.2, size=.02)+
+  xlim(c(-130,-60))+ylim(c(20,50))
+```
+
+Yes, you can find seasonal trends in the acidents. In the Winter, there are more accidents. This can be seen by the darker colors around the big city areas. This is because during the Winter, the weather plays a factor in whether it snows, ice on the road, and overall visibility of the road. This is evident in cities affected by winter weather such as New York, Chicago, and Madison.
+
+
+
+
+
+
+
+
+
+
+
+
